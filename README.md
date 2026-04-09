@@ -99,11 +99,11 @@ Total: entries.length
 Completed: entries.filter(e => e.completed).length
 Pending: entries.filter(e => !e.completed).length
 
-# How to Run Locally
+How to Run Locally
 - Clone the repository:
 git clone https://github.com/rautelavivek/1-1-meeting-tracker.git
 
-# Open project folder
+Open project folder
 Run: index.html
 
 No installation or dependencies required
