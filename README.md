@@ -114,14 +114,13 @@ Key Functionalities
 - Data loads into input fields
 - Save updates existing record
 - Delete Entry
-Removes selected meeting permanently
+- Removes selected meeting permanently
 - Complete Entry
 - Toggles completion state
 - Updates dashboard instantly
 - UI Overview
 
 Each entry contains:
-
 - Employee Name
 - Meeting Date
 - Meeting Notes
