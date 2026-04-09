@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Employee Meeting Notes</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 50px 20px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    .input-group, .search-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"], input[type="date"], textarea {
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      width: 100%;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    button {
+      padding: 10px 15px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.85;
+    }
+
+    .entry-btn {
+      margin-left: 5px;
+      padding: 5px 10px;
+      font-size: 14px;
+    }
+
+    #entries {
+      width: 100%;
+      max-width: 600px;
+      margin-top: 20px;
+    }
+
+    .entry {
+      background: white;
+      padding: 15px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      margin-bottom: 15px;
+    }
+
+    .entry h3 {
+      margin: 0 0 5px 0;
+      font-size: 16px;
+      color: #333;
+    }
+
+    .entry p {
+      margin: 3px 0;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .completed {
+      text-decoration: line-through;
+      color: gray;
+    }
+
+    .entry-controls {
+      margin-top: 8px;
+    }
+
+    #no-entries {
+      color: #666;
+      font-style: italic;
+      margin-top: 20px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <h1>Employee Meeting Notes</h1>
+
+  <div class="search-group">
+    <input type="text" id="searchInput" placeholder="Search by employee name" oninput="updateEntriesDisplay()">
+  </div>
+
+  <div class="input-group">
+    <input type="text" id="employeeName" placeholder="Enter employee name">
+    <input type="date" id="meetingDate">
+    <textarea id="meetingNotes" placeholder="Enter meeting notes"></textarea>
+    <textarea id="actionItems" placeholder="Enter action items"></textarea>
+    <button onclick="saveEntry()">Save Entry</button>
+  </div>
+
+  <div id="entries"></div>
+  <div id="no-entries">No entries yet</div>
+
+  <script>
+    const entries = [];
+
+    function updateEntriesDisplay() {
+      const entriesDiv = document.getElementById("entries");
+      const noEntries = document.getElementById("no-entries");
+      const searchQuery = document.getElementById("searchInput").value.toLowerCase();
+      entriesDiv.innerHTML = "";
+
+      const filtered = entries.filter(entry => entry.name.toLowerCase().includes(searchQuery));
+
+      if (filtered.length === 0) {
+        noEntries.style.display = "block";
+      } else {
+        noEntries.style.display = "none";
+
+        filtered.forEach((entry, index) => {
+          const div = document.createElement("div");
+          div.className = "entry";
+
+          // Employee name + date
+          const h3 = document.createElement("h3");
+          h3.innerText = `${entry.name} (${entry.meetingDate || entry.savedDate})`;
+
+          // Meeting notes
+          const notesP = document.createElement("p");
+          notesP.innerText = `Notes: ${entry.notes}`;
+
+          // Action items
+          const actionsP = document.createElement("p");
+          actionsP.innerText = `Action Items: ${entry.actions || "N/A"}`;
+
+          // Controls: Complete / Edit / Delete
+          const controls = document.createElement("div");
+          controls.className = "entry-controls";
+
+          // Complete / Undo
+          const completeBtn = document.createElement("button");
+          completeBtn.innerText = entry.completed ? "Undo Complete" : "Mark Completed";
+          completeBtn.className = "entry-btn";
+          completeBtn.style.backgroundColor = entry.completed ? "#FFA500" : "#4CAF50";
+          completeBtn.onclick = function() {
+            entry.completed = !entry.completed;
+            updateEntriesDisplay();
+          };
+
+          // Edit
+          const editBtn = document.createElement("button");
+          editBtn.innerText = "Edit";
+          editBtn.className = "entry-btn";
+          editBtn.style.backgroundColor = "#2196F3";
+          editBtn.onclick = function() {
+            // Load entry data back into inputs
+            document.getElementById("employeeName").value = entry.name;
+            document.getElementById("meetingDate").value = entry.meetingDate;
+            document.getElementById("meetingNotes").value = entry.notes;
+            document.getElementById("actionItems").value = entry.actions;
+
+            // Remove the old entry so saving overwrites it
+            entries.splice(index, 1);
+            updateEntriesDisplay();
+          };
+
+          // Delete
+          const deleteBtn = document.createElement("button");
+          deleteBtn.innerText = "Delete";
+          deleteBtn.className = "entry-btn";
+          deleteBtn.style.backgroundColor = "#f44336";
+          deleteBtn.onclick = function() {
+            entries.splice(index, 1);
+            updateEntriesDisplay();
+          };
+
+          controls.appendChild(completeBtn);
+          controls.appendChild(editBtn);
+          controls.appendChild(deleteBtn);
+
+          // Apply completed style
+          if (entry.completed) {
+            notesP.classList.add("completed");
+            actionsP.classList.add("completed");
+            h3.classList.add("completed");
+          }
+
+          div.appendChild(h3);
+          div.appendChild(notesP);
+          div.appendChild(actionsP);
+          div.appendChild(controls);
+
+          entriesDiv.appendChild(div);
+        });
+      }
+    }
+
+    function saveEntry() {
+      const name = document.getElementById("employeeName").value.trim();
+      const meetingDate = document.getElementById("meetingDate").value;
+      const notes = document.getElementById("meetingNotes").value.trim();
+      const actions = document.getElementById("actionItems").value.trim();
+
+      if (!name || !notes) {
+        alert("Please enter both employee name and meeting notes.");
+        return;
+      }
+
+      const savedDate = new Date().toLocaleString();
+
+      entries.push({ name, meetingDate, notes, actions, savedDate, completed: false });
+
+      // Clear inputs
+      document.getElementById("employeeName").value = "";
+      document.getElementById("meetingDate").value = "";
+      document.getElementById("meetingNotes").value = "";
+      document.getElementById("actionItems").value = "";
+
+      updateEntriesDisplay();
+    }
+
+    // Initial display
+    updateEntriesDisplay();
+  </script>
+
+</body>
+</html>
