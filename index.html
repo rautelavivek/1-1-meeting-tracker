@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Employee Meeting Notes</title>
+  <title>1-1 Meeting Tracker Dashboard</title>
+
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -10,81 +11,71 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 50px 20px;
+      padding: 40px 20px;
     }
 
-    h1 {
-      color: #333;
-      margin-bottom: 20px;
+    h1 { color: #333; }
+
+    /* DASHBOARD */
+    .dashboard {
+      display: flex;
+      gap: 15px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+      justify-content: center;
     }
 
+    .card {
+      background: white;
+      padding: 15px 20px;
+      border-radius: 12px;
+      min-width: 120px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .card h2 { margin: 0; }
+
+    /* INPUT */
     .input-group, .search-group {
       display: flex;
       flex-direction: column;
       gap: 10px;
       width: 100%;
-      max-width: 400px;
-      margin-bottom: 20px;
+      max-width: 420px;
+      margin-bottom: 15px;
     }
 
-    input[type="text"], input[type="date"], textarea {
+    input, textarea {
       padding: 10px;
-      font-size: 16px;
-      border: 1px solid #ccc;
       border-radius: 8px;
-      width: 100%;
+      border: 1px solid #ccc;
     }
 
-    textarea {
-      resize: vertical;
-      min-height: 80px;
-    }
+    textarea { min-height: 80px; }
 
     button {
-      padding: 10px 15px;
-      font-size: 16px;
-      border-radius: 8px;
+      padding: 10px;
       border: none;
+      border-radius: 8px;
       cursor: pointer;
-      background-color: #4CAF50;
       color: white;
-      transition: 0.2s;
     }
 
-    button:hover {
-      opacity: 0.85;
-    }
+    .add-btn { background: #4CAF50; }
 
-    .entry-btn {
-      margin-left: 5px;
-      padding: 5px 10px;
-      font-size: 14px;
-    }
-
+    /* ENTRY */
     #entries {
       width: 100%;
-      max-width: 600px;
-      margin-top: 20px;
+      max-width: 650px;
     }
 
     .entry {
       background: white;
-      padding: 15px 20px;
+      padding: 15px;
       border-radius: 12px;
+      margin-bottom: 12px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-      margin-bottom: 15px;
-    }
-
-    .entry h3 {
-      margin: 0 0 5px 0;
-      font-size: 16px;
-      color: #333;
-    }
-
-    .entry p {
-      margin: 3px 0;
-      font-size: 14px;
-      color: #555;
     }
 
     .completed {
@@ -93,157 +84,204 @@
     }
 
     .entry-controls {
-      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
     }
+
+    .btn-blue { background: #2196F3; }
+    .btn-red { background: #f44336; }
+    .btn-orange { background: #ff9800; }
 
     #no-entries {
-      color: #666;
-      font-style: italic;
+      color: gray;
       margin-top: 20px;
+      font-style: italic;
     }
-
   </style>
 </head>
+
 <body>
 
-  <h1>Employee Meeting Notes</h1>
+  <h1>1-1 Meeting Tracker</h1>
 
+  <!-- DASHBOARD -->
+  <div class="dashboard">
+    <div class="card"><h2 id="total">0</h2><p>Total</p></div>
+    <div class="card"><h2 id="completed">0</h2><p>Completed</p></div>
+    <div class="card"><h2 id="pending">0</h2><p>Pending</p></div>
+  </div>
+
+  <!-- SEARCH -->
   <div class="search-group">
-    <input type="text" id="searchInput" placeholder="Search by employee name" oninput="updateEntriesDisplay()">
+    <input id="searchInput" placeholder="Search employee..." oninput="render()">
   </div>
 
+  <!-- INPUT -->
   <div class="input-group">
-    <input type="text" id="employeeName" placeholder="Enter employee name">
-    <input type="date" id="meetingDate">
-    <textarea id="meetingNotes" placeholder="Enter meeting notes"></textarea>
-    <textarea id="actionItems" placeholder="Enter action items"></textarea>
-    <button onclick="saveEntry()">Save Entry</button>
+    <input id="name" placeholder="Employee name">
+    <input id="date" type="date">
+    <textarea id="notes" placeholder="Meeting notes"></textarea>
+    <textarea id="actions" placeholder="Action items"></textarea>
+    <button class="add-btn" onclick="save()">Save Entry</button>
   </div>
 
+  <!-- LIST -->
   <div id="entries"></div>
   <div id="no-entries">No entries yet</div>
 
-  <script>
-    const entries = [];
+<script>
+  let entries = JSON.parse(localStorage.getItem("entries")) || [];
+  let editId = null;
 
-    function updateEntriesDisplay() {
-      const entriesDiv = document.getElementById("entries");
-      const noEntries = document.getElementById("no-entries");
-      const searchQuery = document.getElementById("searchInput").value.toLowerCase();
-      entriesDiv.innerHTML = "";
+  function persist() {
+    localStorage.setItem("entries", JSON.stringify(entries));
+  }
 
-      const filtered = entries.filter(entry => entry.name.toLowerCase().includes(searchQuery));
+  // ================= SAVE / UPDATE =================
+  function save() {
+    const name = document.getElementById("name").value.trim();
+    const date = document.getElementById("date").value;
+    const notes = document.getElementById("notes").value.trim();
+    const actions = document.getElementById("actions").value.trim();
 
-      if (filtered.length === 0) {
-        noEntries.style.display = "block";
-      } else {
-        noEntries.style.display = "none";
-
-        filtered.forEach((entry, index) => {
-          const div = document.createElement("div");
-          div.className = "entry";
-
-          // Employee name + date
-          const h3 = document.createElement("h3");
-          h3.innerText = `${entry.name} (${entry.meetingDate || entry.savedDate})`;
-
-          // Meeting notes
-          const notesP = document.createElement("p");
-          notesP.innerText = `Notes: ${entry.notes}`;
-
-          // Action items
-          const actionsP = document.createElement("p");
-          actionsP.innerText = `Action Items: ${entry.actions || "N/A"}`;
-
-          // Controls: Complete / Edit / Delete
-          const controls = document.createElement("div");
-          controls.className = "entry-controls";
-
-          // Complete / Undo
-          const completeBtn = document.createElement("button");
-          completeBtn.innerText = entry.completed ? "Undo Complete" : "Mark Completed";
-          completeBtn.className = "entry-btn";
-          completeBtn.style.backgroundColor = entry.completed ? "#FFA500" : "#4CAF50";
-          completeBtn.onclick = function() {
-            entry.completed = !entry.completed;
-            updateEntriesDisplay();
-          };
-
-          // Edit
-          const editBtn = document.createElement("button");
-          editBtn.innerText = "Edit";
-          editBtn.className = "entry-btn";
-          editBtn.style.backgroundColor = "#2196F3";
-          editBtn.onclick = function() {
-            // Load entry data back into inputs
-            document.getElementById("employeeName").value = entry.name;
-            document.getElementById("meetingDate").value = entry.meetingDate;
-            document.getElementById("meetingNotes").value = entry.notes;
-            document.getElementById("actionItems").value = entry.actions;
-
-            // Remove the old entry so saving overwrites it
-            entries.splice(index, 1);
-            updateEntriesDisplay();
-          };
-
-          // Delete
-          const deleteBtn = document.createElement("button");
-          deleteBtn.innerText = "Delete";
-          deleteBtn.className = "entry-btn";
-          deleteBtn.style.backgroundColor = "#f44336";
-          deleteBtn.onclick = function() {
-            entries.splice(index, 1);
-            updateEntriesDisplay();
-          };
-
-          controls.appendChild(completeBtn);
-          controls.appendChild(editBtn);
-          controls.appendChild(deleteBtn);
-
-          // Apply completed style
-          if (entry.completed) {
-            notesP.classList.add("completed");
-            actionsP.classList.add("completed");
-            h3.classList.add("completed");
-          }
-
-          div.appendChild(h3);
-          div.appendChild(notesP);
-          div.appendChild(actionsP);
-          div.appendChild(controls);
-
-          entriesDiv.appendChild(div);
-        });
-      }
+    if (!name || !notes) {
+      alert("Name and notes required");
+      return;
     }
 
-    function saveEntry() {
-      const name = document.getElementById("employeeName").value.trim();
-      const meetingDate = document.getElementById("meetingDate").value;
-      const notes = document.getElementById("meetingNotes").value.trim();
-      const actions = document.getElementById("actionItems").value.trim();
-
-      if (!name || !notes) {
-        alert("Please enter both employee name and meeting notes.");
-        return;
-      }
-
-      const savedDate = new Date().toLocaleString();
-
-      entries.push({ name, meetingDate, notes, actions, savedDate, completed: false });
-
-      // Clear inputs
-      document.getElementById("employeeName").value = "";
-      document.getElementById("meetingDate").value = "";
-      document.getElementById("meetingNotes").value = "";
-      document.getElementById("actionItems").value = "";
-
-      updateEntriesDisplay();
+    if (editId !== null) {
+      // UPDATE existing
+      const entry = entries.find(e => e.id === editId);
+      entry.name = name;
+      entry.date = date;
+      entry.notes = notes;
+      entry.actions = actions;
+      editId = null;
+    } else {
+      // NEW entry
+      entries.push({
+        id: Date.now(),
+        name,
+        date,
+        notes,
+        actions,
+        completed: false
+      });
     }
 
-    // Initial display
-    updateEntriesDisplay();
-  </script>
+    clearForm();
+    persist();
+    render();
+  }
+
+  function clearForm() {
+    document.getElementById("name").value = "";
+    document.getElementById("date").value = "";
+    document.getElementById("notes").value = "";
+    document.getElementById("actions").value = "";
+  }
+
+  // ================= EDIT =================
+  function editEntry(id) {
+    const entry = entries.find(e => e.id === id);
+
+    document.getElementById("name").value = entry.name;
+    document.getElementById("date").value = entry.date;
+    document.getElementById("notes").value = entry.notes;
+    document.getElementById("actions").value = entry.actions;
+
+    editId = id;
+  }
+
+  // ================= DELETE =================
+  function deleteEntry(id) {
+    entries = entries.filter(e => e.id !== id);
+    persist();
+    render();
+  }
+
+  // ================= DASHBOARD =================
+  function updateDashboard() {
+    document.getElementById("total").innerText = entries.length;
+    document.getElementById("completed").innerText =
+      entries.filter(e => e.completed).length;
+    document.getElementById("pending").innerText =
+      entries.filter(e => !e.completed).length;
+  }
+
+  // ================= RENDER =================
+  function render() {
+    const container = document.getElementById("entries");
+    const search = document.getElementById("searchInput").value.toLowerCase();
+
+    container.innerHTML = "";
+
+    const filtered = entries.filter(e =>
+      e.name.toLowerCase().includes(search)
+    );
+
+    document.getElementById("no-entries").style.display =
+      filtered.length ? "none" : "block";
+
+    filtered.forEach(entry => {
+      const div = document.createElement("div");
+      div.className = "entry";
+
+      const title = document.createElement("h3");
+      title.innerText = `${entry.name} (${entry.date || "No date"})`;
+
+      const notes = document.createElement("p");
+      notes.innerText = entry.notes;
+      if (entry.completed) notes.classList.add("completed");
+
+      const actions = document.createElement("p");
+      actions.innerText = entry.actions || "";
+      if (entry.completed) actions.classList.add("completed");
+
+      const controls = document.createElement("div");
+      controls.className = "entry-controls";
+
+      // COMPLETE
+      const completeBtn = document.createElement("button");
+      completeBtn.innerText = entry.completed ? "Undo" : "Complete";
+      completeBtn.className = "btn-orange";
+      completeBtn.onclick = () => {
+        entry.completed = !entry.completed;
+        persist();
+        render();
+      };
+
+      // EDIT (RESTORED ✔)
+      const editBtn = document.createElement("button");
+      editBtn.innerText = "Edit";
+      editBtn.className = "btn-blue";
+      editBtn.onclick = () => editEntry(entry.id);
+
+      // DELETE
+      const deleteBtn = document.createElement("button");
+      deleteBtn.innerText = "Delete";
+      deleteBtn.className = "btn-red";
+      deleteBtn.onclick = () => deleteEntry(entry.id);
+
+      controls.appendChild(completeBtn);
+      controls.appendChild(editBtn);
+      controls.appendChild(deleteBtn);
+
+      div.appendChild(title);
+      div.appendChild(notes);
+      div.appendChild(actions);
+      div.appendChild(controls);
+
+      container.appendChild(div);
+    });
+
+    updateDashboard();
+  }
+
+  render();
+</script>
 
 </body>
 </html>
